@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8" />
+<title>glTF Viewer</title>
+<style>
+  html,body{height:100%;margin:0;background:#111;color:#eee;font-family:system-ui,Arial}
+  #c{display:block;width:100%;height:100%}
+  #ui{position:fixed;left:12px;top:12px;z-index:9}
+  button{padding:8px 12px;border:0;border-radius:8px;cursor:pointer}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/js/loaders/GLTFLoader.js"></script>
+<body>
+<canvas id="c"></canvas>
+<div id="ui"><button id="play">Play/Pause</button></div>
+<script>
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0,1.2,3);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x222222, 1));
+const dir = new THREE.DirectionalLight(0xffffff, 0.8); dir.position.set(3,5,2); scene.add(dir);
+
+const loader = new THREE.GLTFLoader();
+// Если файл у тебя называется иначе — поменяй имя здесь:
+loader.load('butterfly_new.gltf', (gltf)=>{
+  scene.add(gltf.scene);
+  // Попробуем анимацию, если есть
+  let mixer = null, action = null, playing = true;
+  if (gltf.animations && gltf.animations.length){
+    mixer = new THREE.AnimationMixer(gltf.scene);
+    action = mixer.clipAction(gltf.animations[0]);
+    action.play();
+  }
+  const clock = new THREE.Clock();
+  function animate(){
+    requestAnimationFrame(animate);
+    if (mixer) mixer.update(clock.getDelta());
+    renderer.render(scene, camera);
+  }
+  animate();
+  document.getElementById('play').onclick = ()=>{
+    if (!action) return;
+    playing = !playing;
+    playing ? action.play() : action.paused = true;
+    if (!playing){ action.paused = true; }
+    else { action.paused = false; }
+  };
+}, undefined, (err)=>console.error('Load error:', err));
+
+addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
